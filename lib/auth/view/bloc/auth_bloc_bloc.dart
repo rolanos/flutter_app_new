@@ -17,21 +17,30 @@ class AuthBlocBloc extends Bloc<AuthBlocEvent, AuthBlocState> {
     on<GetAuthEvent>((event, emit) async {
       emit(LoadingAuthState());
       try {
-        final response =
-            await _repository.onGetAuthEvent(event.username, event.email);
-        if (response.statusCode == 200) {
-          final responseBody = response.body;
-          SharedPreferences preferences = await SharedPreferences.getInstance();
-          await preferences.setString("username", event.username);
-          await preferences.setString("email", event.email);
-          emit(LoadedAuthState(
-            username: event.username,
-            email: event.email,
-          ));
-          logger.d(responseBody);
-        } else {
-          emit(FailureLoginState());
-        }
+        SharedPreferences preferences = await SharedPreferences.getInstance();
+        await preferences.setString("username", event.username);
+        await preferences.setString("email", event.email);
+        emit(LoadedAuthState(
+          username: event.username,
+          email: event.email,
+        ));
+        return;
+
+        // final response =
+        //     await _repository.onGetAuthEvent(event.username, event.email);
+        // if (response.statusCode == 200) {
+        //   final responseBody = response.body;
+        //   SharedPreferences preferences = await SharedPreferences.getInstance();
+        //   await preferences.setString("username", event.username);
+        //   await preferences.setString("email", event.email);
+        //   emit(LoadedAuthState(
+        //     username: event.username,
+        //     email: event.email,
+        //   ));
+        //   logger.d(responseBody);
+        // } else {
+        //   emit(FailureLoginState());
+        // }
       } catch (_) {
         emit(FailureLoginState());
       }

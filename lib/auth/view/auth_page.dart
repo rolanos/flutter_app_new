@@ -5,7 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/auth_bloc_bloc.dart';
 
 class Auth extends StatefulWidget {
-  const Auth({Key? key}) : super(key: key);
+  Auth({Key? key}) : super(key: key);
+
+  final messangerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   State<Auth> createState() => _AuthState();
@@ -37,33 +39,37 @@ class _AuthState extends State<Auth> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            "Регистрация",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-          ),
-          backgroundColor: Colors.blue,
-        ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.white,
-                Colors.blue,
-              ],
+      home: ScaffoldMessenger(
+        key: widget.messangerKey,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              "Регистрация",
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
             ),
+            backgroundColor: Colors.blue,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                buildAuthBlocListener(),
-                buildTextFormField(),
-                buildButton(),
-              ],
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white,
+                  Colors.blue,
+                ],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  buildAuthBlocListener(),
+                  buildTextFormField(),
+                  buildButton(),
+                ],
+              ),
             ),
           ),
         ),
@@ -88,7 +94,7 @@ class _AuthState extends State<Auth> {
         }
         if (state is FailureLoginState) {
           const errorMessage = "Ошибка подключения к БД";
-          showError(context, errorMessage);
+          showError(widget.messangerKey, errorMessage);
         }
       },
       builder: (context, state) {
@@ -136,6 +142,32 @@ class _AuthState extends State<Auth> {
     );
   }
 
+  void showError(GlobalKey scaffoldKey, String errorMessage) {
+    if (scaffoldKey.currentState != null) {
+      (scaffoldKey.currentState as ScaffoldMessengerState).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          duration:
+              const Duration(seconds: 3), // Длительность отображения SnackBar
+          action: SnackBarAction(
+            label: 'Закрыть',
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void showEmptyFieldsError(GlobalKey scaffoldKey) {
+    showError(scaffoldKey, 'Пожалуйста, заполните все поля.');
+  }
+
+  void showInvalidFormatError(GlobalKey scaffoldKey) {
+    showError(scaffoldKey, 'Неверный формат имени пользователя или email.');
+  }
+
   Widget buildButton() {
     return Padding(
       padding: const EdgeInsets.only(top: 15.0), // Смещение кнопки вниз
@@ -144,44 +176,24 @@ class _AuthState extends State<Auth> {
           String username = usernameController.text;
           String email = emailController.text;
 
-          if (usernameValidator.hasMatch(username) &&
-              emailValidator.hasMatch(email)) {
-            authBloc.add(GetAuthEvent(username, email));
+          if (username.isEmpty || email.isEmpty) {
+            showEmptyFieldsError(widget.messangerKey);
+          } else if (!usernameValidator.hasMatch(username) ||
+              !emailValidator.hasMatch(email)) {
+            showInvalidFormatError(widget.messangerKey);
           } else {
-            const errorMessage = "Неверный формат имени пользователя или email";
-            showError(context, errorMessage);
+            authBloc.add(GetAuthEvent(username, email));
           }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.pink,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(5.0), // Уменьшение радиуса скругления
+            borderRadius: BorderRadius.circular(5.0),
           ),
         ),
         child: const Text("Зарегистрировать",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
-    );
-  }
-
-  void showError(BuildContext context, String errorMessage) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Ошибка"),
-          content: Text(errorMessage),
-          actions: <Widget>[
-            OutlinedButton(
-              child: const Text("Закрыть"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 }
